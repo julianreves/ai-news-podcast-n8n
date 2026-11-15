@@ -1,0 +1,140 @@
+{
+  "name": "AI News Podcast: failure alerts",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b4968e38-06ae-466e-9b21-0ba9ad13d5da",
+      "name": "Error Trigger — fallo real",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        32,
+        352
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "f984fec8-cd4c-4316-883f-c89832583a10",
+      "name": "Manual Trigger — probar alerta",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        32,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{\n  _isTest: true,\n  workflow: {name:'AI News Podcast',id:'TEST'},\n  execution: {\n    id:'TEST-001',\n    url:'',\n    lastNodeExecuted:'DeepSeek — Análisis',\n    error: {message:'PRUEBA: Respuesta vacía del proveedor de IA'}\n  }\n}}];"
+      },
+      "id": "8c854d44-fc5a-49a3-8b42-ac6b330af366",
+      "name": "Simular error (solo pruebas)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formato seguro para Telegram HTML. No expone stacks ni cuerpos completos de APIs.\nconst data = $input.first()?.json ?? {};\nconst execution = data.execution ?? {};\nconst workflow = data.workflow ?? {};\nconst error = execution.error ?? data.error ?? {};\nconst isTest = data._isTest === true;\nconst redact = (value) => String(value ?? 'No disponible')\n  .replace(/Bearer\\s+[A-Za-z0-9._~+/-]+/gi, 'Bearer [OCULTO]')\n  .replace(/sk-[A-Za-z0-9_-]{12,}/g, '[API_KEY_OCULTA]');\nconst esc = (value) => redact(value)\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;')\n  .replace(/\\\"/g, '&quot;');\nconst wf = esc(workflow.name || 'Podcast diario');\nconst node = esc(execution.lastNodeExecuted || error.node?.name || 'No identificado');\nconst msg = esc(String(error.message || error.description || 'Error sin mensaje').slice(0, 900));\nconst id = esc(execution.id || 'No disponible');\nconst date = new Date().toLocaleString('es-ES', { timeZone: 'Europe/Madrid', hour12: false });\nconst url = String(execution.url || '');\nconst validUrl = /^https?:\\/\\//i.test(url);\nconst lines = [\n  isTest ? '🧪 <b>PRUEBA DE ALERTA — n8n</b>' : '🚨 <b>FALLO — PODCAST DIARIO</b>',\n  `<b>Workflow:</b> ${wf}`,\n  `<b>Nodo:</b> ${node}`,\n  `<b>Error:</b> ${msg}`,\n  `<b>Execution ID:</b> ${id}`,\n  `<b>Detectado:</b> ${esc(date)} (Madrid)`,\n];\nif (validUrl) lines.push(`<a href=\"${esc(url)}\">Abrir ejecución fallida</a>`);\nif (isTest) lines.push('Este mensaje es una simulación. No indica un fallo real.');\nreturn [{json:{text:lines.join('\\n'),isTest,workflow:workflow.name || ''}}];"
+      },
+      "id": "ffc66685-a909-4f2d-8d9d-258e16271d2e",
+      "name": "Construir alerta segura",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_TELEGRAM_CHAT_ID",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "cbc4e237-2b12-488b-857a-793bde240f84",
+      "name": "Telegram — aviso de fallo",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        832,
+        448
+      ],
+      "webhookId": "f3973160-7904-4f17-a106-3c0b6e999017"
+    },
+    {
+      "parameters": {
+        "content": "## Alertas del podcast\n\n**Configurar una vez:**\n1. En Telegram — aviso de fallo, selecciona tu credencial de Telegram y reemplaza el Chat ID.\n2. En el workflow principal: Settings → Error Workflow → selecciona este workflow.\n3. Usa Manual Trigger para comprobar la entrega (mensaje PRUEBA).\n\nEl Error Trigger recibe fallos **automáticos**; no se activa al ejecutar manualmente otro workflow. Los errores deben propagarse (Stop Workflow).",
+        "height": 280,
+        "width": 520
+      },
+      "id": "44a9b15d-4f38-4a69-b684-e750145b0959",
+      "name": "INSTRUCCIONES — conectar alertas",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Error Trigger — fallo real": {
+      "main": [
+        [
+          {
+            "node": "Construir alerta segura",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger — probar alerta": {
+      "main": [
+        [
+          {
+            "node": "Simular error (solo pruebas)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simular error (solo pruebas)": {
+      "main": [
+        [
+          {
+            "node": "Construir alerta segura",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construir alerta segura": {
+      "main": [
+        [
+          {
+            "node": "Telegram — aviso de fallo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}
