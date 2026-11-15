@@ -113,4 +113,4 @@ MIT ([LICENSE](LICENSE)). Este proyecto no incluye código de terceros; la inspi
 
 ---
 
-<sub>Parte de [AI Build Log](https://github.com/96jjrevorio/ai-build-log) · por [Julián Revorio](https://www.linkedin.com/in/julianrevorio/)</sub>
+<sub>Parte de [AI Build Log](https://github.com/julianreves/ai-build-log) · por [Julián Revorio](https://www.linkedin.com/in/julianrevorio/)</sub>
